@@ -3,7 +3,7 @@ const app = express()
 const port = 3000
 const mongoose = require('mongoose');
 const cors = require('cors');
-const { userRegister } = require('./Controller/userController');
+const { userRegister,userSignin } = require('./Controller/userController');
 require('dotenv').config();
 
 app.use(express.json());
@@ -12,7 +12,8 @@ app.get('/', (req, res) => {
   res.send('Hello World! ')
 })
 
-app.post("/usersignup",userRegister)
+app.post("/usersignup",userRegister);
+app.post("/userlogin",userSignin);
 
 const MONGO_URI = process.env.MONGO_URI;
 
