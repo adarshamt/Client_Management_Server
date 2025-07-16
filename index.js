@@ -1,12 +1,13 @@
 const express = require('express')
 const app = express()
-const port = 3000
+const port = 4000
 const mongoose = require('mongoose');
 const cors = require('cors');
 const { userRegister,userSignin } = require('./Controller/userController');
 require('dotenv').config();
 
 app.use(express.json());
+app.use(cors());
 
 app.get('/', (req, res) => {
   res.send('Hello World! ')
