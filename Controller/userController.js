@@ -3,7 +3,14 @@
 const userModel = require ("../Model/userSchema");
 
 const bcrypt = require ('bcryptjs')
+const jwt = require("jsonwebtoken")
+require('dotenv').config();
 
+
+const JWT_Secret = process.env.JWT_SECRET
+// const JWT_Secret = process.env.MONGO_URI
+const JWT_Expiers = process.env.JWT_EXPIRES_IN
+console.log("jwt ", JWT_Expiers,JWT_Secret)
  const userRegister = async (req,res)=>{
 
     console.log("user register controller")
@@ -35,10 +42,25 @@ const bcrypt = require ('bcryptjs')
 
         await user.save();
 
-        console.log(name,"name from body")
+        // Generate JWT token
+        const JWT_token = jwt.sign(
+            { id: user._id, email: user.email },
+            JWT_Secret,
+            { expiresIn: JWT_Expiers }
+        );
+
+
+        console.log(user._id,"user id from mongodb ")
          res.status(200).json({
       status: "success",
       message: " user registred successfully",
+       Token:JWT_token,
+         user: {
+        name: user.name,
+        email: user.email,
+        phone: user.phone,
+      },
+
     });
         
     } catch (error) {
@@ -83,6 +105,7 @@ const userSignin = async (req, res) => {
     res.status(200).json({
       status: "success",
       message: "User signed in successfully",
+      Token:JWT_token,
       user: {
         name: user.name,
         email: user.email,
