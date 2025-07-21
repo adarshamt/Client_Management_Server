@@ -81,6 +81,7 @@ const userSignin = async (req, res) => {
     const { username, password } = req.body;
 
     console.log("controll sign in username",username)
+    console.log("controll sign in password :",password)
   
     const user = await userModel.findOne({
       $or: [{ email: username }, { phone: username }],
@@ -93,6 +94,7 @@ const userSignin = async (req, res) => {
       });
     }
    const checkPassword = await bcrypt.compare(password,user.password)
+   console.log("check password", checkPassword)
 
     if (!checkPassword) {
       return res.status(401).json({
