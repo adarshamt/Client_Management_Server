@@ -74,15 +74,11 @@ console.log("jwt ", JWT_Expiers,JWT_Secret)
 
 
 const userSignin = async (req, res) => {
-
-    console.log("controll sign in")
+  console.log("Controller: Sign in");
 
   try {
     const { username, password } = req.body;
 
-    console.log("controll sign in username",username)
-    console.log("controll sign in password :",password)
-  
     const user = await userModel.findOne({
       $or: [{ email: username }, { phone: username }],
     });
@@ -93,9 +89,8 @@ const userSignin = async (req, res) => {
         message: "User not found",
       });
     }
-   const checkPassword = await bcrypt.compare(password,user.password)
-   console.log("check password", checkPassword)
 
+    const checkPassword = await bcrypt.compare(password, user.password);
     if (!checkPassword) {
       return res.status(401).json({
         status: "fail",
@@ -103,19 +98,24 @@ const userSignin = async (req, res) => {
       });
     }
 
+    // ✅ JWT should be generated only after successful user + password match
+    const JWT_token = jwt.sign(
+      { id: user._id, email: user.email },
+      JWT_Secret,
+      { expiresIn: JWT_Expiers }
+    );
 
-    // res.status(200).json({
-    //   status: "success",
-    //   message: "User signed in successfully",
-    //   Token:JWT_token,
-    //   user: {
-    //     name: user.name,
-    //     email: user.email,
-    //     phone: user.phone,
-    //   },
-    // });
+    res.status(200).json({
+      status: "success",
+      message: "User signed in successfully",
+      token: JWT_token,
+      user: {
+        name: user.name,
+        email: user.email,
+        phone: user.phone,
+      },
+    });
   } catch (error) {
-
     console.error("Signin error:", error);
     res.status(500).json({
       status: "error",
