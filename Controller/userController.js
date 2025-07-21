@@ -102,16 +102,16 @@ const userSignin = async (req, res) => {
     }
 
 
-    res.status(200).json({
-      status: "success",
-      message: "User signed in successfully",
-      Token:JWT_token,
-      user: {
-        name: user.name,
-        email: user.email,
-        phone: user.phone,
-      },
-    });
+    // res.status(200).json({
+    //   status: "success",
+    //   message: "User signed in successfully",
+    //   Token:JWT_token,
+    //   user: {
+    //     name: user.name,
+    //     email: user.email,
+    //     phone: user.phone,
+    //   },
+    // });
   } catch (error) {
 
     console.error("Signin error:", error);
