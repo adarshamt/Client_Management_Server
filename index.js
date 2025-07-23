@@ -6,6 +6,9 @@ const cors = require('cors');
 const { userRegister,userSignin } = require('./Controller/userController');
 require('dotenv').config();
 
+const {authenticate } = require('./Middleware/authmiddleware');
+const { addClient,getClients } = require('./Controller/clientController');
+
 app.use(express.json());
 app.use(cors());
 
@@ -15,6 +18,8 @@ app.get('/', (req, res) => {
 
 app.post("/usersignup",userRegister);
 app.post("/userlogin",userSignin);
+app.post("/addclient",authenticate,addClient);
+app.get("/getclients",authenticate,getClients);
 
 const MONGO_URI = process.env.MONGO_URI;
 
