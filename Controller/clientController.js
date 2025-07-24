@@ -1,6 +1,11 @@
 const Client = require('../Model/clientSchema');
 const User = require('../Model/userSchema');
-const { updateClientPackage } = require('../Utils/packageUpdater'); // Note singular name
+const { updateClientPackage } = require('../Utils/packageUpdater');
+
+// Helper function to format date as YYYY-MM-DD
+const formatDate = (date) => {
+  return new Date(date).toISOString().split('T')[0];
+};
 
 const addClient = async (req, res) => {
   try {
@@ -16,7 +21,11 @@ const addClient = async (req, res) => {
       });
     }
 
-    // Create new client
+    // Create new client with date-only expiry
+    const expiryDate = new Date();
+    expiryDate.setDate(expiryDate.getDate() + packageDuration);
+    expiryDate.setHours(0, 0, 0, 0); // Set time to midnight
+
     const client = new Client({
       name,
       email,
@@ -27,7 +36,7 @@ const addClient = async (req, res) => {
       packageStatus: {
         isActive: true,
         daysRemaining: packageDuration,
-        expiryDate: new Date(Date.now() + packageDuration * 24 * 60 * 60 * 1000)
+        expiryDate: expiryDate
       }
     });
 
@@ -43,7 +52,13 @@ const addClient = async (req, res) => {
     res.status(201).json({
       status: "success",
       message: "Client added successfully",
-      client: client.toObject()
+      client: {
+        ...client.toObject(),
+        packageStatus: {
+          ...client.packageStatus,
+          expiryDate: formatDate(client.packageStatus.expiryDate) // Date only
+        }
+      }
     });
 
   } catch (error) {
@@ -62,15 +77,17 @@ const getClients = async (req, res) => {
     // Get clients
     let clients = await Client.find({ createdBy: userId }).lean();
     
-    // Update and return fresh data
+    // Update and return fresh data with formatted dates
     clients = await Promise.all(
       clients.map(async client => {
         const updated = await updateClientPackage(client);
         return {
           ...updated,
-          isActive: updated.packageStatus.isActive,
-          daysRemaining: updated.packageStatus.daysRemaining,
-          expiryDate: updated.packageStatus.expiryDate
+          packageStatus: {
+            isActive: updated.packageStatus.isActive,
+            daysRemaining: updated.packageStatus.daysRemaining,
+            expiryDate: formatDate(updated.packageStatus.expiryDate) // Date only
+          }
         };
       })
     );
@@ -98,9 +115,19 @@ const getClientsByStatus = async (req, res) => {
     // Get clients
     let clients = await Client.find({ createdBy: userId }).lean();
     
-    // Update all clients
+    // Update all clients with formatted dates
     clients = await Promise.all(
-      clients.map(client => updateClientPackage(client))
+      clients.map(async client => {
+        const updated = await updateClientPackage(client);
+        return {
+          ...updated,
+          packageStatus: {
+            isActive: updated.packageStatus.isActive,
+            daysRemaining: updated.packageStatus.daysRemaining,
+            expiryDate: formatDate(updated.packageStatus.expiryDate) // Date only
+          }
+        };
+      })
     );
 
     // Filter by status
