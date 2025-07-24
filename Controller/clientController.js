@@ -1,24 +1,14 @@
-// clientController.js
 const Client = require('../Model/clientSchema');
 const User = require('../Model/userSchema');
+const { updateClientPackage } = require('../Utils/packageUpdater'); // Note singular name
 
 const addClient = async (req, res) => {
-console.log("Client body received:", req.body);
-    console.log("client add controller hit !!");
-    
   try {
-    const { name, email, phone } = req.body;
-    const userId = req.user.id; // From JWT token
+    const { name, email, phone, packageName, packageDuration } = req.body;
+    const userId = req.user.id;
 
-    console.log("userid from add client controller",userId);
-    
-
-
-
-    // Check if client with this email already exists for this user
+    // Check for existing client
     const existingClient = await Client.findOne({ email, createdBy: userId });
-    console.log("find the user using the id client add controller ", existingClient);
-    
     if (existingClient) {
       return res.status(409).json({
         status: "fail",
@@ -26,17 +16,24 @@ console.log("Client body received:", req.body);
       });
     }
 
-    // Create new client (no password needed)
+    // Create new client
     const client = new Client({
       name,
       email,
       phone,
-      createdBy: userId
+      packageName,
+      packageDuration,
+      createdBy: userId,
+      packageStatus: {
+        isActive: true,
+        daysRemaining: packageDuration,
+        expiryDate: new Date(Date.now() + packageDuration * 24 * 60 * 60 * 1000)
+      }
     });
 
     await client.save();
 
-    // Add client to user's clients array
+    // Update user's client list
     await User.findByIdAndUpdate(
       userId,
       { $push: { clients: client._id } },
@@ -46,12 +43,7 @@ console.log("Client body received:", req.body);
     res.status(201).json({
       status: "success",
       message: "Client added successfully",
-      client: {
-        id: client._id,
-        name: client.name,
-        email: client.email,
-        phone: client.phone
-      }
+      client: client.toObject()
     });
 
   } catch (error) {
@@ -64,14 +56,24 @@ console.log("Client body received:", req.body);
 };
 
 const getClients = async (req, res) => {
-
-    console.log(" hit the et client controller " );
-    
   try {
-    const userId = req.user.id; // From JWT token
+    const userId = req.user.id;
 
-    // Get all clients for this user
-    const clients = await Client.find({ createdBy: userId });
+    // Get clients
+    let clients = await Client.find({ createdBy: userId }).lean();
+    
+    // Update and return fresh data
+    clients = await Promise.all(
+      clients.map(async client => {
+        const updated = await updateClientPackage(client);
+        return {
+          ...updated,
+          isActive: updated.packageStatus.isActive,
+          daysRemaining: updated.packageStatus.daysRemaining,
+          expiryDate: updated.packageStatus.expiryDate
+        };
+      })
+    );
 
     res.status(200).json({
       status: "success",
@@ -88,4 +90,43 @@ const getClients = async (req, res) => {
   }
 };
 
-module.exports = { addClient, getClients };
+const getClientsByStatus = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { status } = req.params;
+
+    // Get clients
+    let clients = await Client.find({ createdBy: userId }).lean();
+    
+    // Update all clients
+    clients = await Promise.all(
+      clients.map(client => updateClientPackage(client))
+    );
+
+    // Filter by status
+    const filteredClients = clients.filter(client => 
+      status === 'active' 
+        ? client.packageStatus.isActive 
+        : !client.packageStatus.isActive
+    );
+
+    res.status(200).json({
+      status: "success",
+      results: filteredClients.length,
+      clients: filteredClients
+    });
+
+  } catch (error) {
+    console.error("Get clients by status error:", error);
+    res.status(500).json({
+      status: "error",
+      message: "Failed to filter clients by status"
+    });
+  }
+};
+
+module.exports = { 
+  addClient, 
+  getClients,
+  getClientsByStatus
+};

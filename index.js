@@ -6,8 +6,12 @@ const cors = require('cors');
 const { userRegister,userSignin } = require('./Controller/userController');
 require('dotenv').config();
 
+const cron = require('node-cron')
+
+
 const {authenticate } = require('./Middleware/authmiddleware');
-const { addClient,getClients } = require('./Controller/clientController');
+const { addClient,getClients, getClientsByStatus } = require('./Controller/clientController');
+const { updateClientPackages } = require('./Utils/packageUpdater');
 
 app.use(express.json());
 app.use(cors());
@@ -20,6 +24,7 @@ app.post("/usersignup",userRegister);
 app.post("/userlogin",userSignin);
 app.post("/addclient",authenticate,addClient);
 app.get("/getclients",authenticate,getClients);
+app.get('/clients/status/:status', authenticate,getClientsByStatus);
 
 const MONGO_URI = process.env.MONGO_URI;
 
@@ -35,6 +40,11 @@ async function connectDB() {
 
 connectDB();
 
+
+cron.schedule('0 3 * * *', async () => {
+  console.log('Running scheduled package update...');
+  await updateClientPackages();
+});
 
 
 
