@@ -21,10 +21,19 @@ const addClient = async (req, res) => {
       });
     }
 
-    // Create new client with date-only expiry
-    const expiryDate = new Date();
-    expiryDate.setDate(expiryDate.getDate() + packageDuration);
-    expiryDate.setHours(0, 0, 0, 0); // Set time to midnight
+    // Get current date at midnight
+    const currentDate = new Date();
+    currentDate.setHours(0, 0, 0, 0);
+
+    // PROPERLY calculate expiry date (current date + days)
+    const expiryDate = new Date(currentDate);
+    expiryDate.setDate(currentDate.getDate() + Number(packageDuration)+1 );
+
+    console.log('Debug dates:', {
+      currentDate,
+      packageDuration,
+      calculatedExpiry: expiryDate
+    });
 
     const client = new Client({
       name,
@@ -54,9 +63,10 @@ const addClient = async (req, res) => {
       message: "Client added successfully",
       client: {
         ...client.toObject(),
+        createdAt: formatDate(client.createdAt),
         packageStatus: {
           ...client.packageStatus,
-          expiryDate: formatDate(client.packageStatus.expiryDate) // Date only
+          expiryDate: formatDate(client.packageStatus.expiryDate)
         }
       }
     });
