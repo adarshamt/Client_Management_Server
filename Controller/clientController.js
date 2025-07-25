@@ -83,6 +83,7 @@ const getClients = async (req, res) => {
         const updated = await updateClientPackage(client);
         return {
           ...updated,
+           createdAt: formatDate(updated.createdAt),
           packageStatus: {
             isActive: updated.packageStatus.isActive,
             daysRemaining: updated.packageStatus.daysRemaining,
@@ -121,6 +122,7 @@ const getClientsByStatus = async (req, res) => {
         const updated = await updateClientPackage(client);
         return {
           ...updated,
+           createdAt: formatDate(updated.createdAt),
           packageStatus: {
             isActive: updated.packageStatus.isActive,
             daysRemaining: updated.packageStatus.daysRemaining,
