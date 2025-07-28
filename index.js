@@ -23,7 +23,7 @@ app.get('/', (req, res) => {
 app.post("/usersignup",userRegister);
 app.post("/userlogin",userSignin);
 app.post("/addclient",authenticate,addClient);
-app.post("/deleteclient/:clientId",authenticate,deleteClient);
+app.delete("/deleteclient/:clientId",authenticate,deleteClient);
 app.get("/getclients",authenticate,getClients);
 app.get('/clients/status/:status', authenticate,getClientsByStatus);
 app.get('/client/packagepdf/:clientId', authenticate,downloadClientPDF);
