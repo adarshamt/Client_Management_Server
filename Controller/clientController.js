@@ -260,9 +260,15 @@ const getClientsByStatus = async (req, res) => {
 };
 
 const deleteClient = async (req, res) => {
+
+  log("delte client check")
   try {
     const { clientId } = req.params;
+    log("delte client check client id", clientId)
     const userId = req.user.id;
+    log("delte client check user id", userId)
+
+
 
     // 1. Check if client exists at all
     const clientExists = await Client.exists({ _id: clientId });
