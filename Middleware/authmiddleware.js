@@ -12,7 +12,7 @@ if (!JWT_SECRET) {
 
 // 1. Authentication Middleware (Verify JWT)
 exports.authenticate = async (req, res, next) => {
-  console.log("--------------- hit auth middleware -----------");
+  // console.log("--------------- hit auth middleware -----------");
   
   try {
     // Get token from header (multiple possible locations)
