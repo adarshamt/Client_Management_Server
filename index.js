@@ -10,7 +10,7 @@ const cron = require('node-cron')
 
 
 const {authenticate } = require('./Middleware/authmiddleware');
-const { addClient,getClients, getClientsByStatus, deleteClient,downloadClientPDF } = require('./Controller/clientController');
+const { addClient,getClients, getClientsByStatus, deleteClient,downloadClientPDF, updateClient } = require('./Controller/clientController');
 const { updateClientPackages } = require('./Utils/packageUpdater');
 
 app.use(express.json());
@@ -27,6 +27,7 @@ app.post("/deleteclient/:clientId",authenticate,deleteClient);
 app.get("/getclients",authenticate,getClients);
 app.get('/clients/status/:status', authenticate,getClientsByStatus);
 app.get('/client/packagepdf/:clientId', authenticate,downloadClientPDF);
+app.patch('/client/updateclient/:clientId', authenticate,updateClient);
 
 const MONGO_URI = process.env.MONGO_URI;
 

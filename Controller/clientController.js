@@ -12,7 +12,7 @@ const formatDate = (date) => {
 };
 
 
-    const addClient = async (req, res) => {
+ const addClient = async (req, res) => {
   try {
     const { name, email, phone, packageName, packageDuration } = req.body;
     const userId = req.user.id;
@@ -314,11 +314,167 @@ const deleteClient = async (req, res) => {
     });
   }
 };
+const updateClient = async (req, res) => {
+  try {
+    const { clientId } = req.params;
+    const userId = req.user.id;
+    const { name, email, phone, packageName, packageDuration } = req.body;
+
+    // 1. Find the client and verify ownership
+    const client = await Client.findOne({
+      _id: clientId,
+      createdBy: userId
+    });
+
+    if (!client) {
+      return res.status(404).json({
+        status: "fail",
+        message: "Client not found or you don't have permission to edit"
+      });
+    }
+
+    // 2. Validate input
+    if (!name || !email || !phone) {
+      return res.status(400).json({
+        status: "fail",
+        message: "Name, email and phone are required fields"
+      });
+    }
+
+    // 3. Check if email is being changed to one that already exists
+    if (email !== client.email) {
+      const emailExists = await Client.findOne({ 
+        email, 
+        createdBy: userId,
+        _id: { $ne: clientId } // Exclude current client
+      });
+      
+      if (emailExists) {
+        return res.status(409).json({
+          status: "fail",
+          message: "Another client with this email already exists"
+        });
+      }
+    }
+
+    // 4. Prepare update data
+    const updateData = {
+      name,
+      email,
+      phone,
+      updatedAt: new Date()
+    };
+
+    // 5. Handle package changes if provided
+    if (packageName || packageDuration) {
+      const currentPackageStatus = client.packageStatus;
+      let isPackageChanged = false;
+
+      // If package name changed
+      if (packageName && packageName !== client.packageName) {
+        updateData.packageName = packageName;
+        isPackageChanged = true;
+      }
+
+      // If duration changed
+      if (packageDuration && packageDuration !== client.packageDuration) {
+        updateData.packageDuration = packageDuration;
+        isPackageChanged = true;
+
+        // Recalculate expiry date if duration changed
+        const currentDate = new Date();
+        currentDate.setHours(0, 0, 0, 0);
+        const expiryDate = new Date(currentDate);
+        expiryDate.setDate(currentDate.getDate() + Number(packageDuration) + 1);
+
+        updateData.packageStatus = {
+          isActive: true,
+          daysRemaining: packageDuration,
+          expiryDate
+        };
+      }
+
+      // If package changed, generate new PDF
+      if (isPackageChanged) {
+        try {
+          const pdfResponse = await generateClientPDF(
+            { ...client.toObject(), ...updateData },
+            { packageName: packageName || client.packageName, packageDuration: packageDuration || client.packageDuration }
+          );
+
+          updateData.registrationPdf = {
+            path: pdfResponse.pdfPath,
+            fileName: pdfResponse.fileName,
+            generatedAt: new Date()
+          };
+
+          // Send email with updated PDF if generation was successful
+          if (pdfResponse && client.email) {
+            try {
+              await sendEmailWithAttachment({
+                to: client.email,
+                subject: `Updated ${packageName || client.packageName} Registration`,
+                text: `Dear ${name},\n\nAttached is your updated registration confirmation.`,
+                attachments: [{
+                  filename: `Updated_Registration_${name}.pdf`,
+                  path: pdfResponse.fullPath
+                }]
+              });
+            } catch (emailError) {
+              console.error('Failed to send update email:', emailError);
+            }
+          }
+        } catch (pdfError) {
+          console.error('PDF generation failed during update:', pdfError);
+          // Continue without failing the operation
+        }
+      }
+    }
+
+    // 6. Apply updates
+    const updatedClient = await Client.findByIdAndUpdate(
+      clientId,
+      updateData,
+      { new: true, runValidators: true }
+    );
+
+    // 7. Format response
+    const response = {
+      status: "success",
+      message: "Client updated successfully",
+      client: {
+        ...updatedClient.toObject(),
+        createdAt: formatDate(updatedClient.createdAt),
+        updatedAt: formatDate(updatedClient.updatedAt),
+        packageStatus: {
+          ...updatedClient.packageStatus,
+          expiryDate: formatDate(updatedClient.packageStatus.expiryDate)
+        }
+      }
+    };
+
+    if (updateData.registrationPdf) {
+      response.pdfUrl = updateData.registrationPdf.path;
+      response.pdfDownload = `/api/clients/${clientId}/download-pdf`;
+    }
+
+    res.status(200).json(response);
+
+  } catch (error) {
+    console.error("Update client error:", error);
+    res.status(500).json({
+      status: "error",
+      message: "Failed to update client",
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
+  }
+};
 
 module.exports = { 
   addClient, 
   getClients,
   getClientsByStatus,
   deleteClient,
-  downloadClientPDF
+  downloadClientPDF,
+  updateClient
 };
