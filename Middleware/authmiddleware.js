@@ -5,6 +5,10 @@ const Client = require('../Model/clientSchema');
 
 const JWT_SECRET = process.env.JWT_SECRET;
 
+
+
+
+
 if (!JWT_SECRET) {
   console.error('FATAL ERROR: JWT_SECRET is not defined.');
   process.exit(1);
@@ -12,7 +16,7 @@ if (!JWT_SECRET) {
 
 // 1. Authentication Middleware (Verify JWT)
 exports.authenticate = async (req, res, next) => {
-  // console.log("--------------- hit auth middleware -----------");
+  console.log("--------------- hit auth middleware -----------");
   
   try {
     // Get token from header (multiple possible locations)
