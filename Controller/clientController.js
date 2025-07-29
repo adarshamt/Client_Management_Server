@@ -261,12 +261,12 @@ const getClientsByStatus = async (req, res) => {
 
 const deleteClient = async (req, res) => {
 
-  log("delte client check")
+  console.log("delte client check");
   try {
     const { clientId } = req.params;
-    log("delte client check client id", clientId)
+    console.log("delte client check client id", clientId)
     const userId = req.user.id;
-    log("delte client check user id", userId)
+    console.log("delte client check user id", userId)
 
 
 
