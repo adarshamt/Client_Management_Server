@@ -321,6 +321,8 @@ const deleteClient = async (req, res) => {
   }
 };
 const updateClient = async (req, res) => {
+  console.log("updated client controller !!!!!!!!!!!!");
+  
   try {
     const { clientId } = req.params;
     const userId = req.user.id;
